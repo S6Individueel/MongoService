@@ -10,7 +10,7 @@ using System.Linq;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
-
+using BC = BCrypt.Net.BCrypt;
 namespace MongoService.DAL
 {
     public class Dal : IDisposable, IUserRepository
@@ -56,7 +56,6 @@ namespace MongoService.DAL
                 var collection = GetUserCollection();
 
                 var filter = new BsonDocument("Name", name);
-
                 User newUser = null;
                 try
                 {
@@ -69,11 +68,15 @@ namespace MongoService.DAL
                     return await Task.FromResult(new User());
                 }
 
-                if (newUser.Pwd.Equals(password) && newUser != null)
+                if (newUser == null)
+                {
+                    return await Task.FromResult(new User());
+
+                }
+                else if (BC.Verify(password, newUser.Pwd))
                 {
                     return newUser;
                 }
-
                 return await Task.FromResult(new User());
             }
             catch (MongoConnectionException)
@@ -102,6 +105,9 @@ namespace MongoService.DAL
         public async Task CreateUser(User user)
         {
             var collection = GetUserCollectionForEdit();
+
+            user.Pwd = BC.HashPassword(user.Pwd);
+
             try
             {
                 await collection.InsertOneAsync(user);
