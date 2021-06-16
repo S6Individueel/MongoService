@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoService.Models;
+using MongoService.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace MongoService.DAL
 {
-    public class Dal : IDisposable
+    public class Dal : IDisposable, IUserRepository
     {
         //private MongoServer mongoServer = null;
         private bool disposed = false;
@@ -33,11 +34,11 @@ namespace MongoService.DAL
         }
 
         // Gets all Task items from the MongoDB server.        
-        public List<User> GetAllTasks()
+        public List<User> GetAllUsers()
         {
             try
             {
-                var collection = GetTasksCollection();
+                var collection = GetUserCollection();
                 return collection.Find(new BsonDocument()).ToList();
             }
             catch (MongoConnectionException)
@@ -45,14 +46,48 @@ namespace MongoService.DAL
                 return new List<User>();
             }
         }
-
-        // Creates a Task and inserts it into the collection in MongoDB.
-        public async Task CreateTask(User user)
+        public async Task<User> GetUser(string name)
         {
-            var collection = GetTasksCollectionForEdit();
             try
             {
-                collection.InsertOne(user);
+                var collection = GetUserCollection();
+
+                var filter = new BsonDocument("Name", name);
+
+                User newUser = null;
+                await collection.Find(filter)
+                         .ForEachAsync(u => newUser = new User(u._id, u.Name, u.Pwd, u.Email, u.Shows));
+                return newUser;
+            }
+            catch (MongoConnectionException)
+            {
+                return await Task.FromResult(new User());
+            }
+        }
+        public async Task<User> UpdateUser(User user)
+        {
+            try
+            {
+                var collection = GetUserCollection();
+
+                var filter = new BsonDocument("Name", user.Name);
+                var update = new BsonDocument { { "Name", user.Name }, {"Pwd", user.Pwd }, {"Email", user.Email } };
+
+                await collection.FindOneAndUpdateAsync(filter, update);
+                return await GetUser(user.Name);
+            }
+            catch (MongoConnectionException)
+            {
+                return await Task.FromResult(new User());
+            }
+        }
+        // Creates a Task and inserts it into the collection in MongoDB.
+        public async Task CreateUser(User user)
+        {
+            var collection = GetUserCollectionForEdit();
+            try
+            {
+                await collection.InsertOneAsync(user);
             }
             catch (MongoCommandException ex)
             {
@@ -60,41 +95,30 @@ namespace MongoService.DAL
             }
         }
 
-        private IMongoCollection<User> GetTasksCollection()
+        public async Task DeleteUser(string name)
         {
-            MongoClientSettings settings = new MongoClientSettings();
-            settings.Server = new MongoServerAddress(host, 10255);
-            settings.UseSsl = true;
-            settings.SslSettings = new SslSettings();
-            settings.SslSettings.EnabledSslProtocols = SslProtocols.Tls12;
-            settings.RetryWrites = false;
-
-            MongoIdentity identity = new MongoInternalIdentity(dbName, userName);
-            MongoIdentityEvidence evidence = new PasswordEvidence(password);
-
-            settings.Credential = new MongoCredential("SCRAM-SHA-1", identity, evidence);
-
-            MongoClient client = new MongoClient(settings);
+            var collection = GetUserCollectionForEdit();
+            var filter = new BsonDocument("Name", name);
+            try
+            {
+                await collection.FindOneAndDeleteAsync(filter);
+            }
+            catch (MongoCommandException ex)
+            {
+                string msg = ex.Message;
+            }
+        }
+        private IMongoCollection<User> GetUserCollection()
+        {
+            MongoClient client = new MongoClient(SetSettings());
             var database = client.GetDatabase(dbName);
             var todoTaskCollection = database.GetCollection<User>(collectionName);
             return todoTaskCollection;
         }
 
-        private IMongoCollection<User> GetTasksCollectionForEdit()
+        private IMongoCollection<User> GetUserCollectionForEdit()
         {
-            MongoClientSettings settings = new MongoClientSettings();
-            settings.Server = new MongoServerAddress(host, 10255);
-            settings.UseSsl = true;
-            settings.SslSettings = new SslSettings();
-            settings.SslSettings.EnabledSslProtocols = SslProtocols.Tls12;
-            settings.RetryWrites = false;
-
-            MongoIdentity identity = new MongoInternalIdentity(dbName, userName);
-            MongoIdentityEvidence evidence = new PasswordEvidence(password);
-
-            settings.Credential = new MongoCredential("SCRAM-SHA-1", identity, evidence);
-
-            MongoClient client = new MongoClient(settings);
+            MongoClient client = new MongoClient(SetSettings());
             var database = client.GetDatabase(dbName);
             var todoTaskCollection = database.GetCollection<User>(collectionName);
             return todoTaskCollection;
@@ -102,6 +126,22 @@ namespace MongoService.DAL
 
         # region IDisposable
 
+        public MongoClientSettings SetSettings()
+        {
+            MongoClientSettings settings = new MongoClientSettings();
+            settings.Server = new MongoServerAddress(host, 10255);
+            settings.UseSsl = true;
+            settings.SslSettings = new SslSettings();
+            settings.SslSettings.EnabledSslProtocols = SslProtocols.Tls12;
+            settings.RetryWrites = false;
+
+            MongoIdentity identity = new MongoInternalIdentity(dbName, userName);
+            MongoIdentityEvidence evidence = new PasswordEvidence(password);
+
+            settings.Credential = new MongoCredential("SCRAM-SHA-1", identity, evidence);
+
+            return settings;
+        }
         public void Dispose()
         {
             this.Dispose(true);
@@ -120,6 +160,6 @@ namespace MongoService.DAL
             this.disposed = true;
         }
 
-        # endregion
+        #endregion
     }
 }
