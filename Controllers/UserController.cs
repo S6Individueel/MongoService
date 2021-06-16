@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using MongoService.DAL;
 using MongoService.Models;
 using MongoService.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace MongoService.Controllers
@@ -24,13 +26,13 @@ namespace MongoService.Controllers
         {
             User user = new User(name, password, email, "[{}]");
             await userRepository.CreateUser(user);
-            return await userRepository.GetUser(name);
+            return await userRepository.GetUser(name, password);
         }
 
         [HttpGet("getuser")]
-        public async Task<User> GetUser(string name)
+        public async Task<User> GetUser(string name, string password)
         {
-            return await userRepository.GetUser(name);
+            return await userRepository.GetUser(name, password);
         }
 
         [HttpDelete("deleteuser")]
@@ -43,6 +45,13 @@ namespace MongoService.Controllers
         public async Task<User> UpdateUser(User user)
         {
             return await userRepository.UpdateUser(user);
+        }
+
+        [HttpGet("forgetme")]
+        public async Task<string> ForgetMe(User user)
+        {
+            await userRepository.ForgetMe(user);
+            return $"Deleted {user.Name}";
         }
     }
 }
