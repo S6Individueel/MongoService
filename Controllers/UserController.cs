@@ -24,13 +24,13 @@ namespace MongoService.Controllers
         {
             User user = new User(name, password, email, "[{}]");
             await userRepository.CreateUser(user);
-            return await userRepository.GetUser(name);
+            return await userRepository.GetUser(name, password);
         }
 
         [HttpGet("getuser")]
-        public async Task<User> GetUser(string name)
+        public async Task<User> GetUser(string name, string password)
         {
-            return await userRepository.GetUser(name);
+            return await userRepository.GetUser(name, password);
         }
 
         [HttpDelete("deleteuser")]

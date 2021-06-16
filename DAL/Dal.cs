@@ -46,7 +46,7 @@ namespace MongoService.DAL
                 return new List<User>();
             }
         }
-        public async Task<User> GetUser(string name)
+        public async Task<User> GetUser(string name, string password)
         {
             try
             {
@@ -57,7 +57,11 @@ namespace MongoService.DAL
                 User newUser = null;
                 await collection.Find(filter)
                          .ForEachAsync(u => newUser = new User(u._id, u.Name, u.Pwd, u.Email, u.Shows));
-                return newUser;
+                if (newUser.Pwd.Equals(password))
+                {
+                    return newUser;
+                }
+                return await Task.FromResult(new User());
             }
             catch (MongoConnectionException)
             {
@@ -74,7 +78,7 @@ namespace MongoService.DAL
                 var update = new BsonDocument { { "Name", user.Name }, {"Pwd", user.Pwd }, {"Email", user.Email } };
 
                 await collection.FindOneAndUpdateAsync(filter, update);
-                return await GetUser(user.Name);
+                return await GetUser(user.Name, user.Pwd);
             }
             catch (MongoConnectionException)
             {
