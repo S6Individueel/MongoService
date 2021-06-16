@@ -2,10 +2,13 @@
 using MongoDB.Driver;
 using MongoService.Models;
 using MongoService.Repositories.Interfaces;
+using Newtonsoft.Json;
+using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace MongoService.DAL
@@ -46,7 +49,7 @@ namespace MongoService.DAL
                 return new List<User>();
             }
         }
-        public async Task<User> GetUser(string name)
+        public async Task<User> GetUser(string name, string password)
         {
             try
             {
@@ -55,9 +58,23 @@ namespace MongoService.DAL
                 var filter = new BsonDocument("Name", name);
 
                 User newUser = null;
-                await collection.Find(filter)
+                try
+                {
+                    await collection.Find(filter)
                          .ForEachAsync(u => newUser = new User(u._id, u.Name, u.Pwd, u.Email, u.Shows));
-                return newUser;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Not Found." + ex.Message);
+                    return await Task.FromResult(new User());
+                }
+
+                if (newUser.Pwd.Equals(password) && newUser != null)
+                {
+                    return newUser;
+                }
+
+                return await Task.FromResult(new User());
             }
             catch (MongoConnectionException)
             {
@@ -74,7 +91,7 @@ namespace MongoService.DAL
                 var update = new BsonDocument { { "Name", user.Name }, {"Pwd", user.Pwd }, {"Email", user.Email } };
 
                 await collection.FindOneAndUpdateAsync(filter, update);
-                return await GetUser(user.Name);
+                return await GetUser(user.Name, user.Pwd);
             }
             catch (MongoConnectionException)
             {
@@ -106,6 +123,26 @@ namespace MongoService.DAL
             catch (MongoCommandException ex)
             {
                 string msg = ex.Message;
+            }
+        }
+
+        public async Task ForgetMe(User user)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.ExchangeDeclare(exchange: "topic_exchange",                     //EXCHANGE creation
+                                        type: "topic");
+
+                var json = JsonConvert.SerializeObject(user);                    //MESSAGE creation
+                var body = Encoding.UTF8.GetBytes(json);
+
+                channel.BasicPublish(exchange: "topic_exchange",                        //MESSAGE publishing
+                                     routingKey: "user.forget",
+                                     basicProperties: null,
+                                     body: body);
+                Console.WriteLine(" [x] Sent Update message", body);
             }
         }
         private IMongoCollection<User> GetUserCollection()
