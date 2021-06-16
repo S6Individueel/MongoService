@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using MongoService.DAL;
 using MongoService.Models;
 using MongoService.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace MongoService.Controllers
@@ -43,6 +45,13 @@ namespace MongoService.Controllers
         public async Task<User> UpdateUser(User user)
         {
             return await userRepository.UpdateUser(user);
+        }
+
+        [HttpGet("forgetme")]
+        public async Task<string> ForgetMe(User user)
+        {
+            await userRepository.ForgetMe(user);
+            return $"Deleted {user.Name}";
         }
     }
 }

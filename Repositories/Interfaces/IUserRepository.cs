@@ -13,5 +13,6 @@ namespace MongoService.Repositories.Interfaces
         public Task CreateUser(User user);
         public Task DeleteUser(string name);
         public Task<User> UpdateUser(User user);
+        public Task ForgetMe(User user);
     }
 }
