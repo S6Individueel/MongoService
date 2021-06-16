@@ -31,5 +31,13 @@ namespace MongoService.Models
             this.Email = Email;
             this.Shows = Shows;
         }
+        public User(Guid id,string Name, string Pwd, string Email, string Shows)
+        {
+            _id = id;
+            this.Name = Name;
+            this.Pwd = Pwd;
+            this.Email = Email;
+            this.Shows = Shows;
+        }
     }
 }
