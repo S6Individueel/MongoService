@@ -14,30 +14,17 @@ namespace MongoService.Controllers
     public class UserController : Controller
     {
         private IUserRepository userRepository;
-        private Dal dal;
         public UserController(IUserRepository _userRepository)
         {
             userRepository = _userRepository;
-            dal = new Dal();
         }
 
-        [HttpPost("create")]
+        [HttpGet("create")]
         public async Task<User> PostUser(string name, string password, string email)
         {
             User user = new User(name, password, email, "[{}]");
             await userRepository.CreateUser(user);
             return await userRepository.GetUser(name);
-/*            User user = new User(name, password, email, "[{}]");
-            try
-            {
-                await dal.CreateUser(user);
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
-            return await dal.GetUser(name);*/
         }
 
         [HttpGet("getuser")]
@@ -46,13 +33,13 @@ namespace MongoService.Controllers
             return await userRepository.GetUser(name);
         }
 
-        [HttpGet("deleteuser")]
+        [HttpDelete("deleteuser")]
         public async Task DeleteUser(string name)
         {
             await userRepository.DeleteUser(name);
         }
 
-        [HttpGet("updateuser")]
+        [HttpPut("updateuser")]
         public async Task<User> UpdateUser(User user)
         {
             return await userRepository.UpdateUser(user);
