@@ -48,10 +48,12 @@ namespace MongoService.Controllers
         }
 
         [HttpGet("forgetme")]
-        public async Task<string> ForgetMe(User user)
+        public async Task<string> ForgetMe(string name, string password)
         {
-            await userRepository.ForgetMe(user);
-            return $"Deleted {user.Name}";
+            User newUser = await userRepository.GetUser(name, password);
+            newUser.Pwd = password;
+            await userRepository.ForgetMe(newUser);
+            return $"Deleted {newUser.Name}";
         }
     }
 }
