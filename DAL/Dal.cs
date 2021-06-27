@@ -102,20 +102,30 @@ namespace MongoService.DAL
             }
         }
         // Creates a Task and inserts it into the collection in MongoDB.
-        public async Task CreateUser(User user)
+        public async Task<User> CreateUser(User user)
         {
             var collection = GetUserCollectionForEdit();
 
             user.Pwd = BC.HashPassword(user.Pwd);
-
-            try
+            User existingUser = await GetUser(user.Name, user.Pwd);
+            if (existingUser.Name == null)
             {
-                await collection.InsertOneAsync(user);
-            }
-            catch (MongoCommandException ex)
+                try
+                {
+                    await collection.InsertOneAsync(user);
+                    return await GetUser(user.Name, user.Pwd);
+                }
+                catch (MongoCommandException ex)
+                {
+                    string msg = ex.Message;
+                    return new User();
+                }
+            } 
+            else if (existingUser.Name.Equals(user.Name))
             {
-                string msg = ex.Message;
+                return new User();
             }
+            return new User();
         }
 
         public async Task DeleteUser(string name)

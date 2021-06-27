@@ -22,11 +22,10 @@ namespace MongoService.Controllers
         }
 
         [HttpGet("create")]
-        public async Task<User> PostUser(string name, string password, string email)
+        public async Task<User> CreateUser(string name, string password, string email)
         {
             User user = new User(name, password, email, "[{}]");
-            await userRepository.CreateUser(user);
-            return await userRepository.GetUser(name, password);
+            return await userRepository.CreateUser(user);
         }
 
         [HttpGet("getuser")]
