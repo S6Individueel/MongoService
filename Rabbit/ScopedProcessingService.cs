@@ -36,7 +36,7 @@ namespace MongoService.Rabbit
                 "Scoped Processing Service is working for SHOWSSERVICE");
                 var factory = new ConnectionFactory()
                 {
-                    HostName = "localhost",
+                    HostName = "rabbitmq",
                     Port = 5672,
                     DispatchConsumersAsync = true,
                     AutomaticRecoveryEnabled = true,

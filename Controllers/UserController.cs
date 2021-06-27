@@ -22,11 +22,10 @@ namespace MongoService.Controllers
         }
 
         [HttpGet("create")]
-        public async Task<User> PostUser(string name, string password, string email)
+        public async Task<User> CreateUser(string name, string password, string email)
         {
             User user = new User(name, password, email, "[{}]");
-            await userRepository.CreateUser(user);
-            return await userRepository.GetUser(name, password);
+            return await userRepository.CreateUser(user);
         }
 
         [HttpGet("getuser")]
@@ -48,10 +47,12 @@ namespace MongoService.Controllers
         }
 
         [HttpGet("forgetme")]
-        public async Task<string> ForgetMe(User user)
+        public async Task<string> ForgetMe(string name, string password)
         {
-            await userRepository.ForgetMe(user);
-            return $"Deleted {user.Name}";
+            User newUser = await userRepository.GetUser(name, password);
+            newUser.Pwd = password;
+            await userRepository.ForgetMe(newUser);
+            return $"Deleted {newUser.Name}";
         }
     }
 }
